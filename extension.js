@@ -1,59 +1,65 @@
-const Main = imports.ui.main;
-const GLib = imports.gi.GLib;
-const GObject = imports.gi.GObject;
-const Gio = imports.gi.Gio;
-const St = imports.gi.St;
-const PanelMenu = imports.ui.panelMenu;
-const PopupMenu = imports.ui.popupMenu;
+#!/usr/bin/env gjs
+const {main: Main, panelMenu: PanelMenu, popupMenu: PopupMenu} = imports.ui;
+const {GLib, GObject, Gio, St, Clutter} = imports.gi;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
-// const parseIniString = Me.imports.utils.parseIniString;
-// const stringifyCreds = Me.imports.utils.stringifyCreds;
-// const stringifyProfileCreds = Me.imports.utils.stringifyProfileCreds;
-// const toTitleCase = Me.imports.utils.toTitleCase;
+const {parseIniString, stringifyCreds, stringifyProfileCreds, toTitleCase} = Me.imports.utils;
+const byteArray = imports.byteArray
 
-let myPopup;
+let awsProfileSwitcher, activeAwsProfile, awsProfileLabel;
+let panelButton, panelButtonText, timeout;
 
+const CREDENTIALS_FILE = GLib.get_home_dir() + '/.aws/credentials'
+
+function getActiveAwsProfile() {
+    const allProfileCredentials = getAwsCredentials();
+    const accessKeys = Object.entries(allProfileCredentials).reduce((acc, [key, {aws_access_key_id}]) => {
+        acc[key] = aws_access_key_id
+        return acc;
+    }, {});
+    const [activeProfile] = Object.entries(accessKeys).find(([key, val]) => key !== 'default' && val === accessKeys.default)
+    return toTitleCase(activeProfile);
+}
 
 function getAwsNamedProfiles() {
     const [ok, out, err, exit] = GLib.spawn_command_line_sync('aws configure list-profiles');
-    return out.toString().split('\n').reduce((acc, profileName) => {
-
+    return byteArray.toString(out).split('\n').reduce((acc, profileName) => {
         if (profileName && profileName !== 'default') {
-            // acc.push(toTitleCase(profileName));
             acc.push(profileName);
         }
         return acc;
     }, []);
 }
 
-// function getAwsCredentials() {
-//     const [ok, out, err, exit] = GLib.spawn_command_line_sync('cat < $HOME/.aws/credentials');
-//     return parseIniString(out.toString());
-// }
+function getAwsCredentials() {
+    const [ok, contents] = GLib.file_get_contents(CREDENTIALS_FILE)
+    return ok && parseIniString(byteArray.toString(contents))
+}
 
-// function setDefaultProfile(profileName) {
-//     const {default: _, [profileName]: profileCreds, ...restCreds } = getAwsCredentials();
-//     const updatedCredentialsFile = `${stringifyProfileCreds(restCreds)}[default]\n${stringifyCreds(profileCreds)}`;
-//     GLib.spawn_command_line_sync('cat < $HOME/.aws/credentials');
-//     return updatedCredentialsFile;
-// }
+function setDefaultProfile(profileName) {
+    const allProfileCredentials = getAwsCredentials();
+    const restCreds = Object.entries(allProfileCredentials).reduce((acc, [key, val]) => {
+        if (key !== 'default') {
+            acc[key] = val;
+        }
+        return acc;
+    }, {});
+    const profileCreds = allProfileCredentials[profileName];
+    const updatedCredentialsFile = stringifyProfileCreds(restCreds) + '[default]\n' + stringifyCreds(profileCreds);
+    activeAwsProfile.label.set_text(toTitleCase(profileName));
+    GLib.file_set_contents(CREDENTIALS_FILE, updatedCredentialsFile);
+}
 
 function awsProfileMenuItem(profileName) {
-    const menuItem = new PopupMenu.PopupMenuItem(profileName);
-    menuItem.connect('activate', () => {
-        log('setDefaultProfile(profileName)');
-        // log(setDefaultProfile(profileName));
-    });
+    const menuItem = new PopupMenu.PopupMenuItem(toTitleCase(profileName));
+    menuItem.connect('activate', () => setDefaultProfile(profileName));
     return menuItem;
 }
 
 
-const MyPopup = GObject.registerClass(
+const AwsProfileSwitcher = GObject.registerClass(
     class MyPopup extends PanelMenu.Button {
 
-
         _init() {
-
             super._init(0);
 
             const icon = new St.Icon({
@@ -64,116 +70,25 @@ const MyPopup = GObject.registerClass(
             this.add_child(icon);
 
             // AWS profiles menu
-            let subItem = new PopupMenu.PopupSubMenuMenuItem('Profiles');
+            const subItem = new PopupMenu.PopupSubMenuMenuItem('Profiles');
             this.menu.addMenuItem(subItem);
             const awsProfiles = getAwsNamedProfiles();
-            log('opened');
             awsProfiles.forEach(profileName => {
-                log(profileName);
-                subItem.menu.addMenuItem( new PopupMenu.PopupMenuItem(profileName) );
-                // subItem.menu.addMenuItem( awsProfileMenuItem(profileName) );
+                subItem.menu.addMenuItem(awsProfileMenuItem(profileName));
             });
 
-            // image item
-            const popupImageMenuItem = new PopupMenu.PopupImageMenuItem(
-                'Menu Item with Icon',
-                'emblem-default-symbolic',
-            );
-            this.menu.addMenuItem(popupImageMenuItem);
-
-            this.menu.addMenuItem( new PopupMenu.PopupSeparatorMenuItem() );
-
-            this.menu.connect('open-state-changed', (menu, open) => {
-                if (open) {
-                    log('opened');
-                } else {
-                    log('closed');
-                }
-            });
+            // Active AWS profile
+            activeAwsProfile = new PopupMenu.PopupImageMenuItem(getActiveAwsProfile(), 'emblem-default-symbolic');
+            this.menu.addMenuItem(activeAwsProfile);
         }
 
     });
 
-function init() {
-}
-
 function enable() {
-    myPopup = new MyPopup();
-    Main.panel.addToStatusArea('myPopup', myPopup, 1);
+    awsProfileSwitcher = new AwsProfileSwitcher();
+    Main.panel.addToStatusArea('awsProfileSwitcher', awsProfileSwitcher, 1);
 }
 
 function disable() {
-    myPopup.destroy();
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function parseIniString(data) {
-    let regex = {
-        section: /^\s*\[\s*([^\]]*)\s*\]\s*$/,
-        param: /^\s*([^=]+?)\s*=\s*(.*?)\s*$/,
-        comment: /^\s*;.*$/
-    };
-    let value = {};
-    let lines = data.split(/[\r\n]+/);
-    let section = null;
-    lines.forEach(line => {
-        if (regex.comment.test(line)) {
-
-        } else if (regex.param.test(line)) {
-            const match = line.match(regex.param);
-            if (section) {
-                value[section][match[1]] = match[2];
-            } else {
-                value[match[1]] = match[2];
-            }
-        } else if (regex.section.test(line)) {
-            const match = line.match(regex.section);
-            value[match[1]] = {};
-            section = match[1];
-        } else if (line.length == 0 && section) {
-            section = null;
-        }
-    });
-    return value;
-}
-
-function stringifyProfileCreds(profileCreds) {
-    return Object.entries(profileCreds).reduce((acc, [key, val]) => `${acc}[${key}]\n${stringifyCreds(val)}\n\n`, '');
-}
-function stringifyCreds(creds) {
-    return Object.entries(creds).reduce((acc, [key, val]) => `${acc}${key} = ${val}\n`, '');
-}
-
-
-
-const toTitleCaseLowers =
-'a an and as at but by for for from in into near nor of on onto or the to with'.split(
-    ' ',
-);
-
-function toTitleCase(str) {
-    const lowers = toTitleCaseLowers.map(lower => `\\s${lower}\\s`);
-    const regex = new RegExp(`(?!${lowers.join('|')})\\w\\S*`, 'g');
-    return str.replace(
-        regex,
-        txt =>
-            txt.charAt(0).toUpperCase() +
-    txt.substr(1).replace(/[A-Z]/g, word => ` ${word}`),
-    );
+    awsProfileSwitcher.destroy();
 }
