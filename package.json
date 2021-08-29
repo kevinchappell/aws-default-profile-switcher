@@ -1,0 +1,28 @@
+{
+  "name": "aws-default-profile-switcher",
+  "version": "0.0.1",
+  "description": "gnome shell extension to toggle default aws profile",
+  "main": "extension.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kevinchappell/aws-default-profile-switcher.git"
+  },
+  "keywords": [
+    "aws",
+    "profile",
+    "switcher"
+  ],
+  "author": "Kevin Chappell",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kevinchappell/aws-default-profile-switcher/issues"
+  },
+  "homepage": "https://github.com/kevinchappell/aws-default-profile-switcher#readme",
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-plugin-gjs": "bartlibert/eslint-plugin-gjs"
+  }
+}
