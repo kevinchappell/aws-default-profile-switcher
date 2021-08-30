@@ -2,5 +2,6 @@
   "name": "AWS Default Profile Switcher",
   "uuid": "aws-default-profile-switcher@kevin-chappell.com",
   "shell-version": ["3.38"],
-  "description": "Gnome shell extension for quickly setting named profiles as the default"
+  "description": "Gnome shell extension for quickly setting named profiles as the default",
+  "url": "https://github.com/kevinchappell/aws-default-profile-switcher"
 }

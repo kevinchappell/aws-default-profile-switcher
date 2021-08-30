@@ -16,7 +16,6 @@ jobs:
       - uses: codfish/semantic-release-action@v1
         with:
           branches: master
-          repository_url: https://github.com/kevinchappell/aws-default-profile-switcher.git
           plugins: |
             ['@semantic-release/commit-analyzer', '@semantic-release/release-notes-generator', '@semantic-release/github']
         env:
