@@ -4,4 +4,4 @@ A gnome extension to easily set a named profile as the default profile. Most CLI
 
 ![aws-default-profile-switcher](https://user-images.githubusercontent.com/1457540/131270939-bb3b8666-dfaf-4f01-92bb-ecec879e9330.gif)
 
-This example has been released under The MIT License.
+This extension has been released under The MIT License.
