@@ -7,11 +7,11 @@ const byteArray = imports.byteArray
 
 let awsProfileSwitcher, activeAwsProfile, awsProfileLabel;
 let panelButton, panelButtonText, timeout;
+let allProfileCredentials;
 
 const CREDENTIALS_FILE = GLib.get_home_dir() + '/.aws/credentials'
 
 function getActiveAwsProfile() {
-    const allProfileCredentials = getAwsCredentials();
     const accessKeys = Object.entries(allProfileCredentials).reduce((acc, [key, {aws_access_key_id}]) => {
         acc[key] = aws_access_key_id
         return acc;
@@ -21,13 +21,7 @@ function getActiveAwsProfile() {
 }
 
 function getAwsNamedProfiles() {
-    const [ok, out, err, exit] = GLib.spawn_command_line_sync('aws configure list-profiles');
-    return byteArray.toString(out).split('\n').reduce((acc, profileName) => {
-        if (profileName && profileName !== 'default') {
-            acc.push(profileName);
-        }
-        return acc;
-    }, []);
+    return Object.keys(getAwsCredentials()).filter(profileName => profileName !== 'default');
 }
 
 function getAwsCredentials() {
@@ -36,7 +30,6 @@ function getAwsCredentials() {
 }
 
 function setDefaultProfile(profileName) {
-    const allProfileCredentials = getAwsCredentials();
     const restCreds = Object.entries(allProfileCredentials).reduce((acc, [key, val]) => {
         if (key !== 'default') {
             acc[key] = val;
@@ -85,10 +78,12 @@ const AwsProfileSwitcher = GObject.registerClass(
     });
 
 function enable() {
+    allProfileCredentials = getAwsCredentials();
     awsProfileSwitcher = new AwsProfileSwitcher();
     Main.panel.addToStatusArea('awsProfileSwitcher', awsProfileSwitcher, 1);
 }
 
 function disable() {
+    allProfileCredentials = null;
     awsProfileSwitcher.destroy();
 }

@@ -1,9 +1,7 @@
-# How To Create A GNOME Extension Part 11
+# AWS Default Profile Switcher
 
-Example GNOME Extension for "How To Create A GNOME Extension (Part 11)"
-YouTube Video
+A gnome extension to easily set a named profile as the default profile. Most CLI allows you to pass a `--profile` or `--aws-profile` argument however some do not. This extension was created to address tools and scripts that rely on a default profile and prevent developer mistakes when managing AWS with multiple profiles.
 
-YouTube Channel:
-https://www.youtube.com/channel/UCIPetZTndV_mB3GT6tNQ2Zw
+![aws-default-profile-switcher](https://user-images.githubusercontent.com/1457540/131270939-bb3b8666-dfaf-4f01-92bb-ecec879e9330.gif)
 
 This example has been released under The MIT License.
