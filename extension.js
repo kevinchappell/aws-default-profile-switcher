@@ -17,7 +17,7 @@ function getActiveAwsProfile() {
         return acc;
     }, {});
     const [activeProfile] = Object.entries(accessKeys).find(([key, val]) => key !== 'default' && val === accessKeys.default)
-    return toTitleCase(activeProfile);
+    return activeProfile;
 }
 
 function getAwsNamedProfiles() {
@@ -38,12 +38,12 @@ function setDefaultProfile(profileName) {
     }, {});
     const profileCreds = allProfileCredentials[profileName];
     const updatedCredentialsFile = stringifyProfileCreds(restCreds) + '[default]\n' + stringifyCreds(profileCreds);
-    activeAwsProfile.label.set_text(toTitleCase(profileName));
+    activeAwsProfile.label.set_text(profileName);
     GLib.file_set_contents(CREDENTIALS_FILE, updatedCredentialsFile);
 }
 
 function awsProfileMenuItem(profileName) {
-    const menuItem = new PopupMenu.PopupMenuItem(toTitleCase(profileName));
+    const menuItem = new PopupMenu.PopupMenuItem(profileName);
     menuItem.connect('activate', () => setDefaultProfile(profileName));
     return menuItem;
 }
@@ -63,7 +63,7 @@ const AwsProfileSwitcher = GObject.registerClass(
             this.add_child(icon);
 
             // AWS profiles menu
-            const subItem = new PopupMenu.PopupSubMenuMenuItem('Profiles');
+            const subItem = new PopupMenu.PopupSubMenuMenuItem('profiles');
             this.menu.addMenuItem(subItem);
             const awsProfiles = getAwsNamedProfiles();
             awsProfiles.forEach(profileName => {
